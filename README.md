@@ -2,8 +2,6 @@
 
 `bg_readonly_connection_tracker.sh` は、Aurora PostgreSQL の Blue/Green switchover 中に、クラスターエンドポイントへの接続断と復旧を観測するための read-only スクリプトです。
 
-標準の `bg_switchover_tracker.sh` が前提とする `pgworkshop` ユーザー、`pgworkshop` データベース、検証用テーブルが存在しない環境でも使えるようにしています。DB、ユーザー、テーブルは作成しません。
-
 ## 目的
 
 このスクリプトで確認できることは以下です。
