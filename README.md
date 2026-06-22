@@ -151,19 +151,7 @@ RECOVERED       失敗後、初めて query 実行に成功
 SUMMARY         停止時の集計
 ```
 
-## ドライランでの観測結果
-
-今回のドライランでは、標準の `bg_switchover_tracker.sh` は前提オブジェクト不足で起動できませんでした。
-
-不足していた前提は以下です。
-
-- `pgworkshop` role
-- `pgworkshop` database
-- `upgrade_testing` / `item_inventory` などの workload table
-
-そのため、既存の `postgres` DB と `adminuser` を使い、この read-only tracker で switchover 中の接続断を確認しました。
-
-観測結果:
+出力サンプル:
 
 ```text
 first_failure_utc    : 2026-06-22T04:02:25Z
@@ -186,47 +174,3 @@ switchover 後:
 writer_ip       : 10.1.10.100
 aurora_version  : 17.9.2
 ```
-
-この結果から、Blue/Green switchover 後に同じクラスターエンドポイントが新しい writer に復旧したことを確認できました。
-
-## スクリプト単体の動作確認
-
-2026-06-22 に、Bastion host の SSM Session Manager 経由で、このスクリプトを対象クラスターに対して短時間実行しました。
-
-対象 endpoint:
-
-```text
-apg-maintenance-workshop-ten-tables-cluster2-cluster.cluster-czug0u8wskp6.us-west-2.rds.amazonaws.com
-```
-
-確認結果:
-
-```text
-started_at_utc       : 2026-06-22T04:39:05Z
-ended_at_utc         : 2026-06-22T04:39:11Z
-successful_attempts  : 6
-failed_attempts      : 0
-last_writer_ip       : 10.1.10.100
-last_aurora_version  : 17.9.2
-log_file             : /home/ec2-user/bg_readonly_connection_tracker_test.log
-```
-
-この確認では switchover 後の安定状態で実行したため、接続断は発生していません。スクリプトの配置、構文、認証、read-only query、ログ出力が Bastion 上で動作することを確認しています。
-
-## 標準スクリプトとの違い
-
-`bg_switchover_tracker.sh` は、ワークロードを流しながら switchover 影響を観測するための補助スクリプトです。一方、このスクリプトは既存 DB への read-only query だけで接続断と復旧を観測します。
-
-| 観点 | bg_switchover_tracker.sh | bg_readonly_connection_tracker.sh |
-| --- | --- | --- |
-| DB/テーブル作成 | 前提として必要 | 不要 |
-| write workload | 実施する | 実施しない |
-| 接続断の観測 | 可能 | 可能 |
-| writer IP / version 確認 | 実装次第 | 可能 |
-| 既存 DB だけで実行 | 前提が合えば可能 | 可能 |
-
-## 注意点
-
-このスクリプトは Blue/Green switchover の必須手順ではありません。標準 tracker が動かない場合でも、Blue/Green deployment の作成、検証、switchover 自体は実施できます。
-
-ただし、研修で「切り替え時の接続断時間を実測して見せる」ことを重視する場合は、標準 tracker を完全にスキップするより、この read-only tracker のような代替手段を使う方が説明しやすくなります。
