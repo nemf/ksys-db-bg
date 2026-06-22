@@ -39,6 +39,36 @@ port:     5432
 Bastion host など、Aurora に接続できる環境で実行します。
 実行環境には `psql` が必要です。
 
+### SSM Session Manager から取得する場合
+
+AWS Systems Manager Session Manager で Bastion host に接続し、以下を実行します。
+
+```bash
+cd /home/ec2-user
+
+curl -L \
+  https://raw.githubusercontent.com/nemf/ksys-db-bg/main/bg_readonly_connection_tracker.sh \
+  -o bg_readonly_connection_tracker.sh
+
+chmod +x bg_readonly_connection_tracker.sh
+```
+
+取得元の GitHub ページは以下です。
+
+```text
+https://github.com/nemf/ksys-db-bg/blob/main/bg_readonly_connection_tracker.sh
+```
+
+コマンドラインから直接ダウンロードする場合は、`github.com/.../blob/...` ではなく `raw.githubusercontent.com/...` の URL を使います。
+
+必要に応じて構文確認を行います。
+
+```bash
+bash -n bg_readonly_connection_tracker.sh
+```
+
+### 実行
+
 ```bash
 chmod +x bg_readonly_connection_tracker.sh
 
