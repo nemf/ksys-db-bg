@@ -32,6 +32,14 @@ user:     adminuser
 port:     5432
 ```
 
+デフォルトでは、AWS CLI で以下の RDS DB cluster identifier から writer endpoint を自動取得します。
+
+```text
+apg-maintenance-workshop-ten-tables-cluster2-cluster
+```
+
+別のクラスターを対象にする場合は、`DB_CLUSTER_IDENTIFIER` または `CLUSTER_ENDPOINT` を指定します。
+
 認証は PostgreSQL/libpq 標準の仕組みを使います。たとえば `~/.pgpass` または `PGPASSWORD` を利用してください。
 
 ## 使い方
@@ -67,18 +75,38 @@ https://github.com/nemf/ksys-db-bg/blob/main/bg_readonly_connection_tracker.sh
 bash -n bg_readonly_connection_tracker.sh
 ```
 
+取得できているファイルが Bash script であることも確認します。
+
+```bash
+head -n 1 bg_readonly_connection_tracker.sh
+```
+
+期待値:
+
+```text
+#!/usr/bin/env bash
+```
+
+`bash -n` で以下のように Markdown の表を指すエラーが出る場合、GitHub 上の `.sh` ファイルに Markdown 文書が入っています。
+
+```text
+syntax error near unexpected token `|'
+| 観点 | bg_switchover_tracker.sh | bg_readonly_connection_tracker.sh |
+```
+
+この場合は、GitHub の `bg_readonly_connection_tracker.sh` を Bash script 本体に差し替えてください。説明文書は `README.md` または `bg-readonly-connection-tracker.md` として別ファイルにします。
+
 ### 実行
 
 ```bash
-chmod +x bg_readonly_connection_tracker.sh
-
-./bg_readonly_connection_tracker.sh \
-  apg-maintenance-workshop-ten-tables-cluster2-cluster.cluster-xxxxxxxxxxxx.us-west-2.rds.amazonaws.com
+./bg_readonly_connection_tracker.sh
 ```
 
 環境変数で接続先や実行間隔を変更できます。
 
 ```bash
+DB_CLUSTER_IDENTIFIER=apg-maintenance-workshop-ten-tables-cluster2-cluster
+CLUSTER_ENDPOINT=apg-maintenance-workshop-ten-tables-cluster2-cluster.cluster-xxxxxxxxxxxx.us-west-2.rds.amazonaws.com
 PGDATABASE=postgres
 PGUSER=adminuser
 PGPORT=5432
@@ -92,7 +120,7 @@ STOP_AFTER_SECONDS=600
 
 ```bash
 INTERVAL_SECONDS=1 CONNECT_TIMEOUT=2 \
-./bg_readonly_connection_tracker.sh "$BLUE_CLUSTER_ENDPOINT"
+./bg_readonly_connection_tracker.sh
 ```
 
 停止する場合は `Ctrl+C` を押します。停止時にサマリが出力されます。
