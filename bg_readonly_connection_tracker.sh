@@ -4,9 +4,12 @@ set -u
 usage() {
   cat <<'USAGE'
 Usage:
-  ./bg_readonly_connection_tracker.sh <cluster-endpoint>
+  ./bg_readonly_connection_tracker.sh
 
 Environment variables:
+  DB_CLUSTER_IDENTIFIER  RDS DB cluster identifier used for endpoint lookup.
+                         Default: apg-maintenance-workshop-ten-tables-cluster2-cluster
+  CLUSTER_ENDPOINT       Optional cluster endpoint override. If set, AWS lookup is skipped.
   PGPORT                 PostgreSQL port. Default: 5432
   PGDATABASE             Database to connect to. Default: postgres
   PGUSER                 User to connect as. Default: adminuser
@@ -19,7 +22,7 @@ Authentication:
   Use ~/.pgpass, PGPASSWORD, or another standard libpq authentication method.
 
 Example:
-  ./bg_readonly_connection_tracker.sh apg-example.cluster-xxxxx.us-west-2.rds.amazonaws.com
+  ./bg_readonly_connection_tracker.sh
 USAGE
 }
 
@@ -28,13 +31,13 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
-TARGET_HOST="${1:-${PGHOST:-}}"
-if [[ -z "$TARGET_HOST" ]]; then
-  echo "ERROR: cluster endpoint is required." >&2
+if [[ "$#" -gt 1 ]]; then
+  echo "ERROR: too many arguments." >&2
   usage >&2
   exit 2
 fi
 
+DB_CLUSTER_IDENTIFIER="${DB_CLUSTER_IDENTIFIER:-apg-maintenance-workshop-ten-tables-cluster2-cluster}"
 PGPORT="${PGPORT:-5432}"
 PGDATABASE="${PGDATABASE:-postgres}"
 PGUSER="${PGUSER:-adminuser}"
@@ -42,6 +45,40 @@ CONNECT_TIMEOUT="${CONNECT_TIMEOUT:-2}"
 INTERVAL_SECONDS="${INTERVAL_SECONDS:-1}"
 STOP_AFTER_SECONDS="${STOP_AFTER_SECONDS:-}"
 LOG_FILE="${LOG_FILE:-./bg_readonly_connection_tracker_$(date -u +%Y%m%d_%H%M%S).log}"
+
+resolve_target_host() {
+  local positional_endpoint="${1:-}"
+  local endpoint=""
+
+  if [[ -n "$positional_endpoint" ]]; then
+    printf '%s\n' "$positional_endpoint"
+    return 0
+  fi
+
+  if [[ -n "${CLUSTER_ENDPOINT:-}" ]]; then
+    printf '%s\n' "$CLUSTER_ENDPOINT"
+    return 0
+  fi
+
+  if command -v aws >/dev/null 2>&1; then
+    endpoint="$(
+      aws rds describe-db-clusters \
+        --db-cluster-identifier "$DB_CLUSTER_IDENTIFIER" \
+        --query 'DBClusters[0].Endpoint' \
+        --output text 2>/dev/null || true
+    )"
+    if [[ -n "$endpoint" && "$endpoint" != "None" ]]; then
+      printf '%s\n' "$endpoint"
+      return 0
+    fi
+  fi
+
+  echo "ERROR: could not resolve cluster endpoint." >&2
+  echo "Set CLUSTER_ENDPOINT or DB_CLUSTER_IDENTIFIER, or make sure AWS CLI can describe the RDS cluster." >&2
+  exit 2
+}
+
+TARGET_HOST="$(resolve_target_host "${1:-}")"
 
 if ! command -v psql >/dev/null 2>&1; then
   echo "ERROR: psql command is required but was not found in PATH." >&2
@@ -109,6 +146,7 @@ line
 echo "Blue/Green read-only connection tracker"
 line
 echo "started_at_utc       : $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "db_cluster_identifier: $DB_CLUSTER_IDENTIFIER"
 echo "target_host          : $TARGET_HOST"
 echo "database             : $PGDATABASE"
 echo "user                 : $PGUSER"
