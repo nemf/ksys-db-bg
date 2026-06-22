@@ -61,41 +61,6 @@ curl -L \
 chmod +x bg_readonly_connection_tracker.sh
 ```
 
-取得元の GitHub ページは以下です。
-
-```text
-https://github.com/nemf/ksys-db-bg/blob/main/bg_readonly_connection_tracker.sh
-```
-
-コマンドラインから直接ダウンロードする場合は、`github.com/.../blob/...` ではなく `raw.githubusercontent.com/...` の URL を使います。
-
-必要に応じて構文確認を行います。
-
-```bash
-bash -n bg_readonly_connection_tracker.sh
-```
-
-取得できているファイルが Bash script であることも確認します。
-
-```bash
-head -n 1 bg_readonly_connection_tracker.sh
-```
-
-期待値:
-
-```text
-#!/usr/bin/env bash
-```
-
-`bash -n` で以下のように Markdown の表を指すエラーが出る場合、GitHub 上の `.sh` ファイルに Markdown 文書が入っています。
-
-```text
-syntax error near unexpected token `|'
-| 観点 | bg_switchover_tracker.sh | bg_readonly_connection_tracker.sh |
-```
-
-この場合は、GitHub の `bg_readonly_connection_tracker.sh` を Bash script 本体に差し替えてください。説明文書は `README.md` または `bg-readonly-connection-tracker.md` として別ファイルにします。
-
 ### 実行
 
 ```bash
